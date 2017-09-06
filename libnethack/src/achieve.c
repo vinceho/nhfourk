@@ -585,4 +585,43 @@ write_achievements(void)
         fclose(achfile);
 }
 
+boolean
+nh_is_unlocked_race(int i)
+{
+    boolean rv;
+
+    API_ENTRY_CHECKPOINT_RETURN_ON_ERROR(TRUE);
+
+    rv = is_unlocked_race(i);
+
+    API_EXIT();
+    return rv;
+}
+
+boolean
+nh_is_unlocked_role(int i)
+{
+    boolean rv;
+
+    API_ENTRY_CHECKPOINT_RETURN_ON_ERROR(TRUE);
+
+    rv = is_unlocked_role(i);
+
+    API_EXIT();
+    return rv;
+}
+
+boolean
+nh_is_unlocked_option(struct nh_option_desc *option)
+{
+    boolean rv;
+
+    API_ENTRY_CHECKPOINT_RETURN_ON_ERROR(TRUE);
+
+    rv = is_unlocked_option(option);
+
+    API_EXIT();
+    return rv;
+}
+
 /* End of file, achieve.c */

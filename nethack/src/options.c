@@ -3,6 +3,7 @@
 /* Copyright (c) Daniel Thaler, 2011 */
 /* NetHack may be freely redistributed.  See license for details. */
 
+#include "nethack.h"
 #include "nhcurses.h"
 #include "common_options.h"
 #include <fcntl.h>
@@ -29,8 +30,6 @@ enum extra_opttypes {
     OPTTYPE_KEYMAP = 1000
 };
 
-/* int because compiler does not permit boolean here (because C is dumb) */
-extern int is_unlocked_option(struct nh_option_desc *option);
 static void show_autopickup_menu(struct nh_option_desc *opt);
 
 
@@ -585,7 +584,7 @@ menu_add_options(struct nh_menulist *menu, int listid,
         if (options[i].birth_option != birth)
             continue;
         if ((options[i].lockstate == nh_lockopt_locked) &&
-            !(is_unlocked_option(&options[i]))) {
+            !(nh_is_unlocked_option(&options[i]))) {
             /* Don't put it on the menu; just leave it at the default value,
                which is set in set_option in libnethack/src/options.c */
             continue;

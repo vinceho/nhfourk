@@ -3,6 +3,7 @@
 /* Copyright (c) Daniel Thaler, 2011.                             */
 /* NetHack may be freely redistributed.  See license for details. */
 
+#include "nethack.h"
 #include "nhcurses.h"
 #include <ctype.h>
 
@@ -14,10 +15,6 @@ struct plselect_listitem {
     int id;
     char *caption;
 };
-
-/* Compiler will not allow boolean here, because C is horrible. */
-extern int is_unlocked_role(int);
-extern int is_unlocked_race(int);
 
 static int
 is_valid_character(const struct nh_roles_info *ri, int rolenum, int racenum,
@@ -96,7 +93,7 @@ get_valid_races(const struct nh_roles_info *ri, int rolenum, int gendnum,
     int count = 0;
 
     for (i = 0; i < ri->num_races; i++) {
-        if (!is_unlocked_race(i))
+        if (!nh_is_unlocked_race(i))
             continue;
 
         if (!is_valid_character(ri, rolenum, i, gendnum, alignnum))
@@ -345,13 +342,13 @@ player_selection(int *out_role, int *out_race, int *out_gend, int *out_align,
         j = 0;
         /* Count unlocked roles */
         for (i = 0; i < listlen; i++)
-            if (is_unlocked_role(i))
+            if (nh_is_unlocked_role(i))
                 j++;
         /* Pick one of those at random */
         k = rand() % j;
         j = 0;
         for (i = 0; i < listlen; i++) {
-            if (is_unlocked_role(i)) {
+            if (nh_is_unlocked_role(i)) {
                 if (j == k)
                     randrole = list[i].id;
                 j++;
@@ -367,7 +364,7 @@ player_selection(int *out_role, int *out_race, int *out_gend, int *out_align,
             init_menulist(&menu);
 
             for (i = 0; i < listlen; i++) {
-                if (is_unlocked_role(i)) {
+                if (nh_is_unlocked_role(i)) {
                     id = list[i].id + 1;    /* list[i].id starts at 0 */
                     thisch = tolower(*list[i].caption);
                     if (thisch == lastch)

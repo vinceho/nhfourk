@@ -42,6 +42,11 @@ extern const_char_p_const_p EXPORT(nh_get_copyright_banner) (void);
 extern enum nh_log_status EXPORT(nh_get_savegame_status) (
     int fd, struct nh_game_info *si);
 
+/* achieve.c */
+extern nh_bool EXPORT(nh_is_unlocked_race) (int i);
+extern nh_bool EXPORT(nh_is_unlocked_role) (int i);
+extern nh_bool EXPORT(nh_is_unlocked_option) (struct nh_option_desc *option);
+
 /* cmd.c */
 extern nh_cmd_desc_p EXPORT(nh_get_commands) (int *count);
 extern nh_cmd_desc_p EXPORT(nh_get_object_commands) (int *count, char invlet);
