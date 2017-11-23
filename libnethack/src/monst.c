@@ -2249,8 +2249,8 @@ const struct permonst mons[] = {
 /*
  * Quendi (Elves)
  */
-    MON("elf", S_QUENDI,
-        SLVL(10, 12, 12, 10, 3, 2, -3), G_NOGEN,     /* for corpses */
+    MON("elf", S_QUENDI,     /* for corpses */
+        SLVL(10, 12, 12, 10, 3, 2, -3), G_NOGEN,
         A(ATTK(AT_WEAP, AD_PHYS, 1, 8),
           NO_ATTK, NO_ATTK, NO_ATTK, NO_ATTK, NO_ATTK),
         SIZ(WT_ELF, 350, 0, MS_HUMANOID, MZ_HUMAN), MR_SLEEP, MR_SLEEP,
@@ -3037,6 +3037,7 @@ const struct permonst mons[] = {
         SIZ(WT_HUMAN, 400, 0, MS_SILENT, MZ_LARGE), MR_FIRE | MR_POISON, 0,
         MRACE_NONE, M1_HUMANOID | M1_POIS,
         M2_DEMON | M2_STALK | M2_HOSTILE | M2_NASTY,
+        M3_XRAY_VISION /* let them see through/in stinking cloud */ |
         M3_INFRAVISIBLE | M3_INFRAVISION, MP_WAND_BASIC, CLR_ORANGE),
     MON("bone devil", S_DEMON,
         LVL(9, 13, 15, -1, 40, -9), (G_HELL | G_NOCORPSE | G_SGROUP | 2),

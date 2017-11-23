@@ -102,7 +102,16 @@ $playfieldutils = qr/dlb|dgn_comp|lev_comp/;
             long_description => "Installs the tileset that traditionally ".
                                 "shipped with older versions of NetHack, ".
                                 "with enhancements from Slash'EM.",
-            object => qr=^path:tilesets/dat/catalogues/slashem-=,
+            object => qr=^path:tilesets/dat/catalogues/slashem-16=,
+            default => 1,
+            depends => 'gui',
+        },
+        slashem32_tiles => {
+            description => "Slash'EM 32px tileset",
+            long_description => "Installs a larger version of the tileset that ".
+                                "traditionally shipped with older versions of ".
+                                "NetHack, with enhancements from Slash'EM.",
+            object => qr=^path:tilesets/dat/catalogues/slashem-32=,
             default => 1,
             depends => 'gui',
         },
@@ -118,6 +127,13 @@ $playfieldutils = qr/dlb|dgn_comp|lev_comp/;
             long_description => "Installs a modern version of the 'RLTiles'/".
                                 "'Ikatura' tileset, enhanced by Raz.",
             object => qr=^path:tilesets/dat/catalogues/rltiles-=,
+            default => 1,
+            depends => 'gui',
+        },
+        fmob_tiles => {
+            description => "FMOB tileset",
+            long_description => "Installs the FMOB (flat mono on black) tileset.",
+            object => qr=^path:tilesets/dat/catalogues/fmob-=,
             default => 1,
             depends => 'gui',
         },
@@ -628,7 +644,12 @@ $playfieldutils = qr/dlb|dgn_comp|lev_comp/;
             install_feature => "dawnlike_tiles",
         },
         _install_slashem => {
-            object => qr{^bpath:tilesets/dat/merged/slashem-.*\.nh4ct$},
+            object => qr{^bpath:tilesets/dat/merged/slashem-16.*\.nh4ct$},
+            install_dir => "gamesdatadir",
+            install_feature => "slashem_tiles",
+        },
+        _install_slashem32 => {
+            object => qr{^bpath:tilesets/dat/merged/slashem-32.*\.nh4ct$},
             install_dir => "gamesdatadir",
             install_feature => "slashem_tiles",
         },
@@ -641,6 +662,11 @@ $playfieldutils = qr/dlb|dgn_comp|lev_comp/;
             object => qr{^bpath:tilesets/dat/merged/geoduck.*\.nh4ct$},
             install_dir => "gamesdatadir",
             install_feature => "geoduck_tiles",
+        },
+        _install_fmob => {
+            object => qr{^bpath:tilesets/dat/merged/fmob.*\.nh4ct$},
+            install_dir => "gamesdatadir",
+            install_feature => "fmob_tiles",
         },
         _install_license => {
             object => "path:libnethack/dat/license",
