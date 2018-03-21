@@ -552,7 +552,7 @@ $(TILESETS_ROOT)/tilecompile.exe: $(filter-out %/basecchar.o,$(patsubst %.c,%.o,
 # Build tilesets
 #==========================================
 define GET_TILECOMPILE_ARGS_SCRIPT =
-echo "-W -t nh4ct -n";
+echo "-W -t nh4ct -k -n";
 tail -n +2 "$(2)" | head -n 1;
 echo "-z";
 head -n 1 "$(2)";
@@ -612,6 +612,7 @@ $(TILESETS_DAT)/%.nh4ct: $(TILESETS_DAT)/catalogues/%.txt $(TILESETS_DAT)/text/b
 doc_install:
 	@mkdir -p $(INSTALL_ROOT)/doc
 	@cp $(NH_DOC)/changelog*.txt $(INSTALL_ROOT)/doc
+	@cp $(NH_DOC)/challengemode.txt $(INSTALL_ROOT)/doc
 	@cp $(NH_DOC)/faq.txt $(INSTALL_ROOT)/doc
 	@cp $(NH_DOC)/philosophy.txt $(INSTALL_ROOT)/doc
 	@cp $(NH_DOC)/keyboard-layouts-nethack.png $(INSTALL_ROOT)/doc
