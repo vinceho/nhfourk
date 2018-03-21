@@ -382,13 +382,13 @@ const struct objclass const_objects[] = {
           ARM_SUIT, MITHRIL, HI_METAL),
 
     ARMOR("bronze plate mail", NULL,
-          1, 0, 1, 0, 25, 5, 500, 400, 3, 0, MZ_MEDIUM, MZ_LARGE,
+          1, 0, 1, 0, 25, 5, 500, 400, 1, 0, MZ_MEDIUM, MZ_LARGE,
           ARM_SUIT, COPPER, HI_COPPER),
     ARMOR("plate mail", NULL,
-          1, 0, 1, 0, 44, 5, 450, 600, 2, 2, MZ_MEDIUM, MZ_LARGE,
+          1, 0, 1, 0, 44, 5, 450, 600, 0, 2, MZ_MEDIUM, MZ_LARGE,
           ARM_SUIT, IRON, HI_METAL),
     ARMOR("crystal plate mail", NULL,
-          1, 0, 1, 0, 10, 5, 600, 1000, 1, 3, MZ_MEDIUM, MZ_LARGE,
+          1, 0, 1, 0, 10, 5, 600, 1000, -1, 3, MZ_MEDIUM, MZ_LARGE,
           ARM_SUIT, GLASS, CLR_WHITE),
 
 /* shirts */
@@ -1034,7 +1034,7 @@ const struct objclass const_objects[] = {
  * that is currently everything between luckstones and flint (inclusive).
  */
     ROCK("luckstone", "gray", 0, 10, 10, 60, 3, 3, 1, 10, 7, MINERAL, CLR_GRAY),
-    ROCK("loadstone", "gray", 0, 10, 500, 1, 3, 3, 1, 10, 6, MINERAL, CLR_GRAY),
+    ROCK("loadstone", "gray", 0, 10, 500, 1, 15, 15, 1, 10, 6, MINERAL, CLR_GRAY),
     ROCK("touchstone", "gray", 0, 8, 10, 45, 3, 3, 1, 10, 6, MINERAL, CLR_GRAY),
     ROCK("flint", "gray", 0, 9, 10, 1, 6, 8, 0, 10, 7, MINERAL, CLR_GRAY),
     ROCK("silver nugget", "shiny", 0, 1, 10, 1, 6, 6, 0, 10, 7, SILVER, HI_SILVER),

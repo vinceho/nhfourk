@@ -1,5 +1,5 @@
 /* vim:set cin ft=c sw=4 sts=4 ts=8 et ai cino=Ls\:0t0(0 : -*- mode:c;fill-column:80;tab-width:8;c-basic-offset:4;indent-tabs-mode:nil;c-file-style:"k&r" -*-*/
-/* Last modified by Alex Smith, 2015-11-13 */
+/* Last modified by Fredrik Ljungdahl, 2018-01-25 */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -155,7 +155,7 @@ flooreffects(struct obj * obj, int x, int y, const char *verb)
             if (mtmp) {
                 if (!passes_walls(mtmp->data) && !throws_rocks(mtmp->data)) {
                     int dieroll = rnd(20);
-                    if (hmon(mtmp, obj, TRUE, dieroll) &&
+                    if (hmon(mtmp, obj, TRUE, dieroll, NULL) &&
                         !is_whirly(mtmp->data))
                         return FALSE;   /* still alive */
                 }
@@ -598,9 +598,8 @@ obj_no_longer_held(struct obj *obj)
     }
     switch (obj->otyp) {
     case CRYSKNIFE:
-        /* KMH -- Fixed crysknives have only 10% chance of reverting */
         /* only changes when not held by player or monster */
-        if (!obj->oerodeproof || !rn2_on_rng(10, rng_unfix_crysknife)) {
+        if (!obj->oerodeproof && !rn2_on_rng(5, rng_crysknife)) {
             obj->otyp = WORM_TOOTH;
             obj->oerodeproof = 0;
         }
@@ -926,6 +925,7 @@ goto_level(d_level * newlevel, boolean at_stairs, boolean falling,
     boolean at_trapdoor = ((t_at(level, u.ux, u.uy)) &&
                            (t_at(level, u.ux, u.uy))->ttyp == TRAPDOOR);
     d_level orig_d;
+    int i;
 
     if (dunlev(newlevel) > dunlevs_in_dungeon(newlevel))
         newlevel->dlevel = dunlevs_in_dungeon(newlevel);
@@ -1027,6 +1027,11 @@ goto_level(d_level * newlevel, boolean at_stairs, boolean falling,
     /* don't let that reenable vision yet */
     turnstate.vision_full_recalc = FALSE; 
     flush_screen_disable();     /* ensure all map flushes are postponed */
+
+    if (new) {
+        for (i = 3 + mklev_rn2(3 + (depth(&level->z) / 3), level); i > 0; i--)
+            makemon(NULL, level, COLNO, ROWNO, MM_SPECIESLEVRNG);
+    }
 
     if (portal && !In_endgame(&u.uz)) {
         /* find the portal on the new level */
@@ -1620,9 +1625,15 @@ revive_mon(void *arg, long timeout)
 int
 donull(const struct nh_cmd_arg *arg)
 {
-    if ((u.uhp < u.uhpmax) && IS_BENCH(level->locations[u.ux][u.uy].typ)) {
-        u.uhp++;
-        pline_once(msgc_statusheal, "You rest on the bench.");
+    if ((u.uhp < u.uhpmax || u.uen < u.uenmax) &&
+        IS_BENCH(level->locations[u.ux][u.uy].typ)) {
+        u.uhp = u.uhpmax;
+        u.uen = u.uenmax;
+        if (Hallucination)
+            exercise(A_STR, TRUE);
+        pline_once(msgc_statusheal,
+                   (Hallucination) ? "Weight training!" :
+                   "You rest on the bench.");
     }
     limited_turns(arg, occ_wait);
     return 1;   /* Do nothing, but let other things happen */

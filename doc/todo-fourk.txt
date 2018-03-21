@@ -25,16 +25,6 @@
 ▒▒▒   2016 May 13th, starting at 8:30am.  Pay special attention to
 ▒▒▒   what we noticed around 9:31.
 ▒▒▒
-▒▒▒ * 05:22 < FIQ > didyou fix tele prompt
-▒▒▒   05:29 < FIQ > jonadab: msg not showing until you pick target xy
-▒▒▒   05:29 < FIQ > to what poston would you lke to teleport
-▒▒▒   The pline() is clearly called before the getpos(), so if this is actually
-▒▒▒   happening, the UI must be doing some weird behind-the-scenes cache thing.
-▒▒▒   Probably related:
-▒▒▒ * 17:26 < hothraxxa+> jonadab: when i try to pay the sk in minetown, i don't get the "Pay whom?" prompt showing. it
-▒▒▒                       should be prompting because i have esp and can see other shopkeepers
-▒▒▒   17:26 < hothraxxa+> so nothing seems to happen, but it is waiting for me to move the cursor to the sk
-▒▒▒
 ▒▒▒ * 04:58 <        Mandevil > jonadab: Another suspected bug: I couldn't eat tin from ground.
 ▒▒▒   04:58 <        Mandevil > jonadab: It just did nothing when I tried.
 ▒▒▒   04:58 <        Mandevil > jonadab: Eating from inventory was OK.
@@ -93,24 +83,6 @@
 ▒▒▒                      back on though
 ▒▒▒   At this time, I cannot reproduce this issue, even when the shield is cursed.
 ▒▒▒
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒   MASTER: Changes that could happen on the master branch any time after 4.3.0.4 releases:
-▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-▒▒▒
-▒▒▒ * FMOB tileset issues:
-▒▒▒   + Grasshopper suggests some weapons (spears, polearms)
-▒▒▒     don't need their full haft length, could do with more
-▒▒▒     detail on the operative bits instead.
-▒▒▒   + The air elemental tile isn't very good.  Redraw.
-▒▒▒
-▒▒▒
-▒▒▒ * Differentiate ancient dragons in DawnHack.
-▒▒▒
-▒▒▒ * Add program icons for the utilities (tilecompile, dlb, etc.)
-▒▒▒
-▒▒▒ * 10:36 <  AmyBSOD\dislex > Oh, and on an unrelated note, trying to move into an undiggable
-▒▒▒                             wall as a scurrier seems to produce no message at all.
-▒▒▒
 ▒▒▒ * 23:26 < FIQ > jonadab: Luxidream seems to have encountered a new version of the name bug
 ▒▒▒   23:27 < FIQ > If you name yourself "bassbasskickkickbasskickkick"
 ▒▒▒   23:27 < FIQ > and play a lawful male human monk
@@ -118,56 +90,107 @@
 ▒▒▒   23:27 < FIQ > but not always
 ▒▒▒   http://sprunge.us/XhXe
 ▒▒▒
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒   MASTER: Changes that could happen on the master branch any time after 4.3.0.4 releases:
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+▒▒▒
+▒▒▒ * 04:40 #hardfought: < LarienTelrunya > !tell jonadab [...] is it intentional that a
+▒▒▒   scroll of remove curse doesn't uncurse the cursed luckstone in my open inventory?
+▒▒▒   am I supposed to actually wield it to make the scroll work???
+▒▒▒
+▒▒▒ * 04:43 #hardfought: < LarienTelrunya > !tell jonadab "You destroy the lich!
+▒▒▒   Something's body crumbles into dust." didn't you fix that thrice already? it
+▒▒▒   still happens!
+▒▒▒
+▒▒▒ * 05:38 #hardfought: < LarienTelrunya > !tell jonadab your weird stinking cloud traps
+▒▒▒   don't reveal themselves when triggered! intentional?
+▒▒▒
+▒▒▒ * Make elder and ancient dragons not a valid polyform.  Because chameleons.
+▒▒▒   And credit LT with noticing.
+▒▒▒
+▒▒▒ * 06:02 #hardfought: < LarienTelrunya > !tell jonadab " b - 36 tsurugis {60}"
+▒▒▒   found on one of the samurai player monsters on the quest
+▒▒▒
+▒▒▒ * K2 says he got "Sparks fly as you whack the boulder. The axe-handle vibrates violently!"
+▒▒▒   while wielding a bullwhip and digging as a scurrier arc.
+▒▒▒
+▒▒▒ * Look over xnethack commit a2d98d2614ef and consider the whole table of spell
+▒▒▒   school skill levels and such.
+▒▒▒
+▒▒▒ * Consider letting most roles get Basic in more spell schools.
+▒▒▒
+▒▒▒ * Look over fnethack (a fork of 343-nao; I added it as a remote to my nao repo),
+▒▒▒   see if it has any commits I want to cherry-pick.
+▒▒▒
+▒▒▒ * Regarding spell failure rates, look at eecdabc and 0245ad4 for inspiration.
+▒▒▒
+▒▒▒ * When applying polearms, the player may be prompted twice for a destination.
+▒▒▒
+▒▒▒ * When triggering a level teleporter with a polearm, the polearm can end up
+▒▒▒   embedded in solid stone on the target level, possibly beyond the edges of
+▒▒▒   where the player can dig.  This is not intended.  (It should land on floor.)
+▒▒▒   I suspect I am using deliver_object() in an unanticipated way.
+▒▒▒
+▒▒▒ * FMOB tileset issues:
+▒▒▒   + Grasshopper suggests some weapons (spears, polearms)
+▒▒▒     don't need their full haft length, could do with more
+▒▒▒     detail on the operative bits instead.
+▒▒▒   + The air elemental tile isn't very good.  Redraw.
+▒▒▒
+▒▒▒ * Differentiate ancient dragons in DawnHack.
+▒▒▒
+▒▒▒ * 03:22 < nht > an oddity in fourk
+▒▒▒   03:22 < nht > as a scurrier I can dig down while wielding a weapon on dungeon floor
+▒▒▒   03:22 < nht > but not when I'm in a pit
+▒▒▒
+▒▒▒ * Add program icons for the the level and dungeon compilers.
+▒▒▒
+▒▒▒ * 10:36 < AmyBSOD\dislex > Oh, and on an unrelated note, trying to move into an undiggable
+▒▒▒                            wall as a scurrier seems to produce no message at all.
+▒▒▒
 ▒▒▒ * Look at FIQ's multiturn movement fix:  [reverted: 98a9db1], 6a5dcba, 6648540
 ▒▒▒
 ▒▒▒ * 19:12 < FIQ > jonadab: 73e8721caf89aa966cdf03af258dde5374f33598 might interest you
 ▒▒▒   This is the thing that shows you your carry cap and total # of inventory slots in the sidebar.
 ▒▒▒
+▒▒▒ * Rather than nerf longswords, it's tempting to buff all the other
+▒▒▒   weapons.  Long swords are d8/d12, ok, so make broadsword
+▒▒▒   2d4/d9+1, scimitar and saber d8/d10, morning star 2d4/d8+1,
+▒▒▒   flail d6+1/3d3, mace d6+1/2d4, etc.
+▒▒▒
+▒▒▒ * In challenge mode, turn item destruction up to eleven, complete with rust and
+▒▒▒   corrosion destroying thoroughly rusted/corroded (non-unique) items completely.
+▒▒▒
 ▒▒▒ * 20:53 < aosdict > jonadab: also, monsters generating in (not inaccessible) closets could be a part of your
 ▒▒▒                     plan to increase monster generation on level creation and decrease the normal generation rate
 ▒▒▒
-▒▒▒ * Didn't 3.6 add a feature where mazes sometimes get walls removed to form loops?
-▒▒▒   Consider cherry-picking that.
-▒▒▒
-▒▒▒ * Fix mazewalk so the same map-relative coordinates work regardless of the values
+▒▒▒ * Fix mazewalk (walkfrom) so the same map-relative coordinates work regardless of the values
 ▒▒▒   of ROWNO and COLNO.  Fix the two Castles that were cherry-picked via BingeHack4,
 ▒▒▒   and re-enable them.
 ▒▒▒
 ▒▒▒ * per rumflump, make #monster <direction> work for digging as a scurrier, so the user
 ▒▒▒   can dig things like a boulder or known-locked door without bumping into it first.
 ▒▒▒
-▒▒▒ * Consider making Snickersnee grant free action when wielded, or maybe stun res.
-▒▒▒
 ▒▒▒ * Look at and consider FIQ's autoswap feature, 719b864d5f
 ▒▒▒
-▒▒▒ * Reduce the weight of mithril armor.
+▒▒▒ * Reconsider item weights:
+▒▒▒   + armor
+▒▒▒   + weapons
+▒▒▒   + tools
+▒▒▒   + books
+▒▒▒   + potions
+▒▒▒   + other
 ▒▒▒
-▒▒▒ * Buff crystal plate mail in some way.
+▒▒▒ * Consider whether crystal plate mail needs further buffs.
 ▒▒▒
 ▒▒▒ * Item destruction rework:
-▒▒▒   + Make extrinsic resistances protect against item destruction, including erosion.
-▒▒▒   + Double check that fooproofing the item protects against item destruction.
-▒▒▒   + Make sure potions of oil don't freeze in any case (but they can be lit by fire).
-▒▒▒   + Make potions other than oil not boil/explode with fire (because cold shatters them).
-▒▒▒   + Instead of exploding, wands should release a charge when shocked.  Depending on
-▒▒▒     the type of wand, the charge may be activated rather than simply lost.
-▒▒▒   + Instead of exploding, charged rings should lose a charge when shocked (unless at -3 or worse).
-▒▒▒     I'll need to decide what to do about uncharged rings.
-▒▒▒
-▒▒▒ * Giants should wield even two-handed weapons in one hand.  "You heft
-▒▒▒   the mighty [weapon] in your hand.  Yes, that will do."  If it then
-▒▒▒   gets cursed, it's welded to the hand, but the other hand is free.
-▒▒▒   They can even use a shield in the other hand (but probably not
-▒▒▒   another weapon, and certainly not another two-hander).
+▒▒▒   + Make extrinsic resistances protect against erosion from that element.
 ▒▒▒
 ▒▒▒ * It appears that material-sensitive players can wield weapons made of the
 ▒▒▒   material in question without difficulty or consequence, provided you do
 ▒▒▒   not change form _while_ wielding the item.  (This is true for silver
 ▒▒▒   in .4, and probably upstream even, but I want to fix it in a general way,
 ▒▒▒   not only for silver.)
-▒▒▒
-▒▒▒ * Make chameleons' ability to hold their form depend on how close it is to being
-▒▒▒   level-appropriate:  short duration if it's much too high or low, longer if it's close.
 ▒▒▒
 ▒▒▒ * Make sure monsters can't wear armor too large or small for them.
 ▒▒▒   (Not sure if boots and cloaks and gloves are handled yet.)
@@ -176,8 +199,8 @@
 ▒▒▒   hallucinatory actions, such as singing, dancing, etc.
 ▒▒▒
 ▒▒▒ * Makedefs must die.  Triage when to refactor each of the things it does:
-▒▒▒   + DONE: monstr[]
-▒▒▒   + oracles.txt => oracles
+▒▒▒   + DONE (.4): monstr[]
+▒▒▒   + DONE (.5): oracles.txt => oracles (breaks save compat)
 ▒▒▒   + rumors.tru + rumors.fal => rumors
 ▒▒▒   + data.base => data
 ▒▒▒   + quest.txt => quest.dat
@@ -195,7 +218,7 @@
 ▒▒▒
 ▒▒▒ * Figure out what further buffs to do to martial arts, if any.
 ▒▒▒
-▒▒▒ * Rebalance the regeneration of HP and Pw.
+▒▒▒ * Rebalance the regeneration of HP.
 ▒▒▒
 ▒▒▒ * More special Level Versions:
 ▒▒▒   + Garden of Temptation
@@ -251,10 +274,12 @@
 ▒▒▒
 ▒▒▒ * Make mvm and uvm poison instandeath work like mvp poison instadeath.
 ▒▒▒
-▒▒▒ * Give scurriers a movement point rebate when moving onto a tree tile.
+▒▒▒ * Rebalance the formula for when you can squeeze past or not.
 ▒▒▒
-▒▒▒ * Perhaps randomly-generated spellbooks should be biased toward low
-▒▒▒   spell levels if generated on a low dungeon level.
+▒▒▒ * Allow elves to squeeze past trees, regardless of what they're carrying.
+▒▒▒
+▒▒▒ * Allow scurriers to outright move _onto_ a tree tile, and give them a movement
+▒▒▒   point discount/rebate (maybe NORMAL_SPEED * 2 / 3) when they do so.
 ▒▒▒
 ▒▒▒ * 08:12 < FIQ > jonadab, certain forms of resistances should be foolproof in challenge mode too...
 ▒▒▒   08:12 < FIQ > e.g. taking fire damage as a fire vortex makes no sense
@@ -270,8 +295,6 @@
 ▒▒▒
 ▒▒▒ * Implement the autounlock feature as in DynaHack.
 ▒▒▒
-▒▒▒ * Allow hezrou to see through and in stinking clouds.  (Maybe give them intrinsic astral vision?)
-▒▒▒
 ▒▒▒ * Fine tune the balance on the Pw regen formula, especially
 ▒▒▒   as regards Sylphs.  See discussion in #nhfourk from Sunday,
 ▒▒▒   Feburary 5th, starting at 7:13, don't miss the late part
@@ -280,41 +303,42 @@
 ▒▒▒
 ▒▒▒ * Consider how the Staff of Aesculalialdkjlaius should work for Sylphs.
 ▒▒▒
-▒▒▒ * Consider creating a generalized version of rne that takes two integers representing
-▒▒▒   a rational, so that fractions other than 1/n can be represented (e.g., 2/3).
-▒▒▒   The regular rne() that is already widely used could be a wrapper that passes 1 for
-▒▒▒   the denominator.  Consider using this function for things like random weapon
-▒▒▒   enchantments, so that the probability of higher enchantments is a bit higher.
-▒▒▒   Perhaps:
-▒▒▒   static inline int
-▒▒▒   rat_rne(int numerator, int denominator, enum rng rng)
-▒▒▒   {
-▒▒▒       int tmp = 1;
-▒▒▒       if (numerator < 1)
-▒▒▒          impossible("Numerator too small in rat_rne(%d, %d, %d)",
-▒▒▒                     numerator, denominator, rng);
-▒▒▒       else if (numerator >= denominator) {
-▒▒▒          impossible("Numerator too large in rat_rne(%d, %d, %d)",
-▒▒▒                     numerator, denominator, rng);
-▒▒▒          return tmp;
-▒▒▒       }
-▒▒▒       while (tmp < 10 && (numerator - 1) <= rn2_on_rng(denominator, rng))
-▒▒▒          tmp++;
-▒▒▒       return tmp;
-▒▒▒   }
-▒▒▒
-▒▒▒   static inline int
-▒▒▒   rne_on_rng(int x, enum rng rng)
-▒▒▒   {
-▒▒▒       return rat_rne(1, x, rng);
-▒▒▒   }
-▒▒▒
 ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 ▒▒▒   4.3.0.5 (before save-compat-freeze) :
 ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 ▒▒▒
 ▒▒▒ * A clear "This save file is from 4.3.0.4 or earlier" would be much better than
 ▒▒▒   the current situation with old-version saves.
+▒▒▒
+▒▒▒ * Conducts:
+▒▒▒   You never used/wore/wielded/applied/invoked/carried an artifact.
+▒▒▒
+▒▒▒ * 18:48 <     FIQ+> jonadab: yani for 4k \n pegasus, a flying horse slightly higher base level than warhorse
+▒▒▒                     speed 24-26 \n no special abilities other than flight
+▒▒▒   18:50 < jonadab+> FIQ: That is not a bad idea.
+▒▒▒   18:54 <  ais523 > would they be tameable with vegetables?
+▒▒▒   18:54 <     FIQ+> I feel like it should be harder \n but preferably possible without magic
+▒▒▒   18:56 <  ais523 > you could make it so that pegasi avoid getting lined up, like unicorns do
+▒▒▒   18:56 <  ais523 > so actually hitting them with the vegetables is hard
+▒▒▒
+▒▒▒ * Consider commit eb85596 (from dnethack), which addresses the 127 level limitation.
+▒▒▒   This is not even remotely urgent for Fourk, but in principle it would be nice to
+▒▒▒   not have to worry about that limit, if we decide to introduce some optional branches.
+▒▒▒
+▒▒▒ * 12:12 < aosdict > YANI: if this doesn't exist already, add a M2_CLIMB or M3_CLIMB flag for
+▒▒▒                     monsters that are natural climbers (spiders, ants, monkeys).  Such
+▒▒▒                     monsters can do things like get out of pits in one turn.
+▒▒▒   Perhaps such monsters should also be able to enter tree tiles.
+▒▒▒
+▒▒▒ * 14:01 < RLdiscord1 > <@Webmant> "you throw the dagger at the fire elemental" "the dagger shoots back at you, burning with primal flame
+▒▒▒   14:02 < RLdiscord1 > <@Webmant> "The air elemental returns your dagger with a strong gust of wind
+▒▒▒   14:04 < RLdiscord1 > <@Webmant> "The earth elemental adds the primal elements of the dagger to itself and becomes stronger
+▒▒▒   In general, I want to add passive-versus-ranged attacks.
+▒▒▒
+▒▒▒ * 15:46 < jonadab > YANI: werebane provides protection from shape changers when wielded.
+▒▒▒
+▒▒▒ * 12:41 < aosdict > FIQ: YANI/EPI: open doors can generate trapped (possible with my door overhaul).
+▒▒▒                     Once you step off of a trapped open door, it closes and locks.
 ▒▒▒
 ▒▒▒ * Cherry-pick 22fae87 (autounlock)
 ▒▒▒
@@ -388,17 +412,14 @@
 ▒▒▒ * new monster: stinking sphere.  A sphere that releases a small-diameter
 ▒▒▒   stinking cloud when it explodes.
 ▒▒▒
-▒▒▒ * Consider adjusting the difficulty of some monsters.
-▒▒▒   + For example, quasits should probably have their difficulty number reduced.
-▒▒▒   + Also manes.
-▒▒▒   + Consider whether any very fast monsters need a bump because of that.
+▒▒▒ * Consider whether any very fast monsters need a bump because of that.
 ▒▒▒
 ▒▒▒ * Ensure that runics interact reasonably with stacking.
 ▒▒▒
 ▒▒▒ * See lycanthropy discussion from 2016 Oct 25 in #nethack-dev, culminating
-▒▒▒   around 20:00.  Short version:  make transformations happen less often,
-▒▒▒   and make you invulnerable for a few turns after turning back to human,
-▒▒▒   flavored as a fear effect.
+▒▒▒   around 20:00.  Short version:  make transformations happen less often
+▒▒▒   (this part is now done), and make you invulnerable for a few turns after
+▒▒▒   turning back to human, flavored as a fear effect (this remains).
 ▒▒▒
 ▒▒▒ * "thunderous voice booms through the caverns" could benefit from some
 ▒▒▒   conditional logic, e.g., outdoor levels should not be called caverns,
@@ -533,6 +554,11 @@
 ▒▒▒   of enchant weapon, in the same way as it is done for a weapon.
 ▒▒▒   Fooproofed items should be entirely protected from elemental damage
 ▒▒▒   (wetting/blanking, shock, fire, cold, etc.)
+▒▒▒
+▒▒▒ * Consider adding a physician's head mirror as an armor item that can be worn
+▒▒▒   by small monsters (including gnomes) and provides reflection, but no defense.
+▒▒▒   Maybe make small the _maximum_ size that can wear it, so humans cannot.  Let
+▒▒▒   gnomish healers start with one, to offset their dearth of other armor.
 ▒▒▒
 ▒▒▒ * Make some (limited) armor that gnomes and scurriers can wear;
 ▒▒▒   consider doing the same for giants.

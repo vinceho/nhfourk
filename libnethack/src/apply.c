@@ -2516,7 +2516,7 @@ use_whip(struct obj *obj, const struct nh_cmd_arg *arg)
 
             if (gotit) {
                 mon_hand = mbodypart(mtmp, HAND);
-                if (bimanual(otmp))
+                if (bimanual(otmp) && mtmp->data->msize < MZ_HUGE)
                     mon_hand = makeplural(mon_hand);
             } else
                 mon_hand = 0;   /* lint suppression */
@@ -2650,7 +2650,7 @@ use_pole(struct obj *obj, const struct nh_cmd_arg *arg)
     int wtstatus, typ, max_range = 4, min_range = 4;
     coord cc;
     struct monst *mtmp;
-
+    struct trap *ttmp;
 
     /* Are you allowed to use the pole? */
     if (Engulfed) {
@@ -2712,12 +2712,14 @@ use_pole(struct obj *obj, const struct nh_cmd_arg *arg)
 
         bhitpos = cc;
         check_caitiff(mtmp);
-        thitmonst(mtmp, uwep);
+        thitmonst(mtmp, uwep, NULL);
         /* check the monster's HP because thitmonst() doesn't return an
            indication of whether it hit.  Not perfect (what if it's a
            non-silver weapon on a shade?) */
         if (mtmp->mhp < oldhp)
             break_conduct(conduct_weaphit);
+    } else if ((ttmp = t_at(level, cc.x, cc.y))) {
+        trigger_trap_with_polearm(ttmp, cc, uwep);
     } else
         /* Now you know that nothing is there... */
         pline(msgc_notarget, "Nothing happens.");
@@ -2860,7 +2862,7 @@ use_grapple(struct obj *obj, const struct nh_cmd_arg *arg)
             return 1;
         } else if ((!bigmonst(mtmp->data) && !strongmonst(mtmp->data)) ||
                    rn2(4)) {
-            thitmonst(mtmp, uwep);
+            thitmonst(mtmp, uwep, NULL);
             return 1;
         }
         /* TODO: This fallthrough looks very suspicious, even though there's a

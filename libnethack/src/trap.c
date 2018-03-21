@@ -1,12 +1,12 @@
 /* vim:set cin ft=c sw=4 sts=4 ts=8 et ai cino=Ls\:0t0(0 : -*- mode:c;fill-column:80;tab-width:8;c-basic-offset:4;indent-tabs-mode:nil;c-file-style:"k&r" -*-*/
-/* Last modified by Alex Smith, 2015-11-11 */
+/* Last modified by Fredrik Ljungdahl, 2018-01-06 */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /* NetHack may be freely redistributed.  See license for details. */
 
 #include "hack.h"
 
 static void dofiretrap(struct obj *);
-static void domagictrap(void);
+static void domagictrap(struct trap *trap);
 static boolean emergency_disrobe(boolean *);
 static int untrap_prob(struct trap *ttmp);
 static void move_into_trap(struct trap *);
@@ -937,7 +937,8 @@ dotrap(struct trap *trap, unsigned trflags)
                   body_part(ARM));
             if (water_damage(uarms, "shield", TRUE))
                 break;
-            if (u.twoweap || (uwep && bimanual(uwep)))
+            if (u.twoweap || (uwep && bimanual(uwep) &&
+                              (URACEDATA)->msize < MZ_HUGE))
                 water_damage(u.twoweap ? uswapwep : uwep, NULL, TRUE);
         glovecheck:
             water_damage(uarmg, "gauntlets", TRUE);
@@ -1191,17 +1192,7 @@ dotrap(struct trap *trap, unsigned trflags)
 
     case MAGIC_TRAP:   /* A magic trap. */
         seetrap(trap);
-        if (!rn2(30)) {
-            deltrap(level, trap);
-            newsym(u.ux, u.uy); /* update position */
-            pline(msgc_nonmonbad, "You are caught in a magical explosion!");
-            losehp(rnd(10), killer_msg(DIED, "a magical explosion"));
-            pline_implied(msgc_intrgain,
-                          "Your %s absorbs some of the magical energy!",
-                          body_part(BODY));
-            u.uen = (u.uenmax += 2);
-        } else
-            domagictrap();
+        domagictrap(trap);
         steedintrap(trap, NULL);
         break;
 
@@ -1479,6 +1470,133 @@ blow_up_landmine(struct trap *trap)
     }
 }
 
+void
+trigger_trap_with_polearm(struct trap *trap, coord cc, struct obj *pole)
+{
+    struct obj *otmp;
+    if (trap->tseen
+        /* TODO: even if not tseen, should poking around with the polearm have
+           a chance of revealing the trap anyway? */) {
+        switch (trap->ttyp) {
+        case ARROW_TRAP:
+        case DART_TRAP:
+        case ROCKTRAP:
+            if (trap->once && !rn2(15)) {
+                if (trap->ttyp == ROCKTRAP) {
+                    pline(msgc_nonmongood,
+                          "A trap door in %s opens, but nothing falls out.",
+                          the(ceiling(cc.x, cc.y)));
+                } else {
+                    You_hear(msgc_nonmongood, (trap->ttyp == DART_TRAP) ?
+                             "a soft click" : "a loud click.");
+                }
+                deltrap (level, trap);
+            } else {
+                trap->once = 1;
+                otmp = mksobj(level,
+                              (trap->ttyp == ROCKTRAP) ? ROCK :
+                              (trap->ttyp == DART_TRAP) ? DART :
+                              ((Inhell && !rn2(3)) ? SILVER_ARROW : ARROW),
+                              TRUE, FALSE, rng_main);
+                otmp->quan = 1L;
+                otmp->owt = weight(otmp);
+                if (trap->ttyp == ROCKTRAP)
+                    pline(msgc_consequence,
+                          "A trap door in %s opens and %s falls out.",
+                          the(ceiling(cc.x,cc.y)), an(xname(otmp)));
+                else
+                    pline(msgc_consequence, "%s shoots out at your %s.",
+                          (trap->ttyp == DART_TRAP) ? "A little dart" :
+                          "An arrow", xname(pole));
+                if (trap->ttyp != DART_TRAP)
+                    otmp->opoisoned = 0;
+                place_object(otmp, level, cc.x, cc.y);
+                stackobj(otmp);
+            }
+            newsym(cc.x, cc.y);
+            break;
+        case SQKY_BOARD:
+            pline(msgc_consequence, "You prod the squeaky board.");
+            wake_nearby(TRUE);
+            break;
+        case BEAR_TRAP:
+        case WEB:
+            pline(msgc_nonmonbad, "Your %s gets caught.", xname(pole));
+            setuwep(NULL);
+            obj_extract_self(pole);
+            place_object(pole, level, cc.x, cc.y);
+            update_inventory();
+            if (trap->ttyp == BEAR_TRAP) {
+                makeknown(BEARTRAP);
+                cnv_trap_obj(level, BEARTRAP, 1, trap);
+            }
+            newsym(cc.x, cc.y);
+            break;
+        case LANDMINE:
+            trap->ttyp = PIT;
+            pline(msgc_consequence, "KAABLAMM!!!");
+            newsym(cc.x, cc.y);
+            break;
+        case RUST_TRAP:
+            pline_implied(msgc_consequence, "%s your %s!",
+                          A_gush_of_water_hits, xname(pole));
+            water_damage(pole, xname(pole), TRUE);
+            update_inventory();
+            break;
+        case TELEP_TRAP: {
+            int tx, ty, tryct = 200;
+            do {
+                tx = rn2(COLNO);
+                ty = rn2(ROWNO);
+            } while (tryct-- && !goodpos(level, tx, ty, NULL, 0));
+            pline(msgc_consequence, "Your %s disappears!", xname(pole));
+            setuwep(NULL);
+            obj_extract_self(pole);
+            place_object(pole, level, tx, ty);
+            break;
+        }
+     /* case MAGIC_PORTAL: */
+        case LEVEL_TELEP: {
+            coord cc;
+            /* Weird use of coord:  we must set x to a dnum, y to a dlevel */
+            cc.x = level->z.dnum;
+            cc.y = random_teleport_level();
+            if (cc.y) {
+                pline(msgc_consequence, "Your %s disappears!", xname(pole));
+                setuwep(NULL);
+                obj_extract_self(pole);
+                deliver_object(pole, cc.x, cc.y, MIGR_RANDOM);
+            }
+            break;
+        }
+        case ROLLING_BOULDER_TRAP:
+            pline(msgc_consequence, "Click.");
+            if (!launch_obj(BOULDER, trap->launch.x, trap->launch.y,
+                            trap->launch2.x, trap->launch2.y,
+                            ROLL | LAUNCH_KNOWN)) {
+                deltrap(level, trap);
+                newsym(cc.x, cc.y);
+                pline(msgc_noconsequence, "No boulder was released.");
+            }
+            break;
+        case STATUE_TRAP:
+            activate_statue_trap(trap, cc.x, cc.y, FALSE);
+            break;
+        case STINKING_TRAP:
+            pline(msgc_consequence, (Blind && Hallucination) ?
+                  "You smell breakfast!" : (Blind) ?
+                  "You smell rotten eggs." : (Hallucination) ?
+                  "A colorful cloud billows up from the trap." :
+                  "A noxious cloud billows up from the trap.");
+            create_gas_cloud(level, cc.x, cc.y, 2 + rn2(3), 3 + rne(3));
+            break;
+        default:
+            pline(msgc_notarget, "Nothing seems to happen.");
+        }
+    } else {
+        pline(msgc_notarget, "Nothing seems to happen.");
+    }
+}
 
 /*
  * Move obj from (x1,y1) to (x2,y2)
@@ -1845,7 +1963,6 @@ isclearpath(struct level *lev, coord * cc, int distance, schar dx, schar dy)
     return TRUE;
 }
 
-
 int
 mintrap(struct monst *mtmp)
 {
@@ -2075,7 +2192,8 @@ mintrap(struct monst *mtmp)
                     if (water_damage(target, "shield", TRUE))
                         break;
                     target = MON_WEP(mtmp);
-                    if (target && bimanual(target))
+                    if (target && bimanual(target) &&
+                        (URACEDATA)->msize < MZ_HUGE)
                         water_damage(target, NULL, TRUE);
                 glovecheck:
                     target =
@@ -2890,17 +3008,23 @@ dofiretrap(struct obj *box)
 }
 
 static void
-domagictrap(void)
+domagictrap(struct trap *trap)
 {
-    int fate = rnd(20);
+    int fate = 21 - rnd(depth(&u.uz));
     struct monst *mtmp;
 
     /* What happened to the poor sucker? */
-
-    if (fate < 10) {
-        /* Most of the time, it creates some monsters. */
+    if (!rn2(30)) {
+        deltrap(level, trap);
+        newsym(u.ux, u.uy); /* update position */
+        pline(msgc_nonmonbad, "You are caught in a magical explosion!");
+        losehp(rnd(10), killer_msg(DIED, "a magical explosion"));
+        pline_implied(msgc_intrgain,
+                      "Your %s absorbs some of the magical energy!",
+                      body_part(BODY));
+        u.uen = (u.uenmax += 2);
+    } else if (fate < 10) {
         int cnt = rnd(4);
-
         if (!resists_blnd(&youmonst)) {
             pline(msgc_statusbad,
                   "You are momentarily blinded by a flash of light!");
@@ -2964,7 +3088,6 @@ domagictrap(void)
             break;
 
             /* very occasionally something nice happens. */
-
         case 19:
             /* tame nearby monsters */
             {
@@ -3153,13 +3276,14 @@ water_damage(struct obj * obj, const char *ostr, boolean force)
             update_inventory();
         return 1;
     } else if (Is_container(obj) && !Is_box(obj) &&
-                (obj->otyp != OILSKIN_SACK || (obj->cursed && !rn2(3)))) {
-        water_damage_chain(obj->cobj, FALSE);
-        return 0;
+               (obj->otyp != OILSKIN_SACK || (obj->cursed && !rn2(3)))) {
+        return water_damage_chain(obj->cobj, FALSE);
     } else if (!force && (Luck + 5) > rn2(20)) {
         /* chance per item of sustaining damage: max luck (full moon): 5%
             max luck (elsewhen): 10% avg luck (Luck==0): 75% awful luck
             (Luck<-4): 100% */
+        return 0;
+    } else if (obj->oerodeproof) {
         return 0;
     } else if (obj->oclass == SCROLL_CLASS) {
         obj->otyp = SCR_BLANK_PAPER;
@@ -3206,16 +3330,25 @@ water_damage(struct obj * obj, const char *ostr, boolean force)
     return 0;
 }
 
-void
+/* Returns 0-2 like above for how things are affected. Something being
+   destroyed (returning 3) is treated as 2. */
+int
 water_damage_chain(struct obj *obj, boolean here)
 {
+    int top_res = 0;
+    int res = 0;
     struct obj *otmp;
 
     for (; obj; obj = otmp) {
         otmp = here ? obj->nexthere : obj->nobj;
 
-        water_damage(obj, NULL, FALSE);
+        res = water_damage(obj, NULL, FALSE);
+        top_res = max(top_res, res);
     }
+
+    if (top_res == 3)
+        top_res = 2;
+    return top_res;
 }
 
 /*
@@ -3456,7 +3589,8 @@ dountrap(const struct nh_cmd_arg *arg)
               mon_nam(u.ustuck));
         return 0;
     }
-    if (u.ustuck || (welded(uwep) && bimanual(uwep))) {
+    if (u.ustuck || (welded(uwep) && bimanual(uwep) &&
+                     (URACEDATA)->msize < MZ_HUGE)) {
         pline(msgc_cancelled, "Your %s seem to be too busy for that.",
               makeplural(body_part(HAND)));
         return 0;

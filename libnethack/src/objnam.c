@@ -686,7 +686,7 @@ add_erosion_words(const struct obj *obj, const char *prefix)
 {
     boolean iscrys = (obj->otyp == CRYSKNIFE);
 
-    if (!is_damageable(obj) && !iscrys)
+    if (!is_damageable(obj) && !iscrys && !obj->oerodeproof)
         return prefix;
 
     /* The only cases where any of these bits do double duty are for rotted
@@ -715,12 +715,13 @@ add_erosion_words(const struct obj *obj, const char *prefix)
     }
     if ((obj->rknown || turnstate.generating_dump) && obj->oerodeproof)
         return msgprintf("%s%s%s%s", prefix, (obj->rknown ? "" : "["),
+                          (obj->oclass == POTION_CLASS) ? "indilutable" :
                          (iscrys ? "fixed" :
                           is_rustprone(obj) ? "rustproof" :
-                          /* Should we use "stainless" instead? */
+                          (objects[obj->otyp].oc_material == METAL) ?
+                          "stainless" :
                           is_corrodeable(obj) ? "corrodeproof" :
-                          is_flammable(obj) ? "fireproof" :
-                          is_rottable(obj) ? "rotproof" : ""),
+                          is_flammable(obj) ? "fireproof" : "durable"),
                          (obj->rknown ? " " : "] "));
     return prefix;
 }
@@ -834,6 +835,8 @@ doname_base(const struct obj *obj, boolean with_price)
     if (obj->greased)
         prefix = msgcat(prefix, "greased ");
 
+    prefix = add_erosion_words(obj, prefix);
+
     switch (obj->oclass) {
     case AMULET_CLASS:
         if (obj->owornmask & W_WORN)
@@ -843,7 +846,7 @@ doname_base(const struct obj *obj, boolean with_price)
         if (ispoisoned)
             prefix = msgcat(prefix, "poisoned ");
     plus:
-        prefix = add_erosion_words(obj, prefix);
+        /* prefix = add_erosion_words(obj, prefix); */
         if (obj->known || dump)
             prefix = msgcat(prefix, bracketize(msgprintf("%+d", obj->spe),
                                                !obj->known, " "));
@@ -855,9 +858,9 @@ doname_base(const struct obj *obj, boolean with_price)
                    " (being worn)");
         goto plus;
     case TOOL_CLASS:
-        /* weptools already get this done when we go to the +n code */
+        /* weptools already get this done when we go to the +n code
         if (!is_weptool(obj))
-            prefix = add_erosion_words(obj, prefix);
+            prefix = add_erosion_words(obj, prefix); */
         if (obj->owornmask & (W_WORN | W_MASK(os_saddle))) {
             buf = msgcat(buf, " (being worn)");
             break;
@@ -909,7 +912,7 @@ doname_base(const struct obj *obj, boolean with_price)
             prefix = msgcat(prefix, "[faint] ");
         break;
     case WAND_CLASS:
-        prefix = add_erosion_words(obj, prefix);
+        /* prefix = add_erosion_words(obj, prefix); */
     charges:
         if (obj->known || dump)
             buf = msgprintf("%s %s%d:%d%s", buf, (obj->known ? "(" : "["),
@@ -921,7 +924,7 @@ doname_base(const struct obj *obj, boolean with_price)
             buf = msgcat(buf, " (lit)");
         break;
     case RING_CLASS:
-        prefix = add_erosion_words(obj, prefix);
+        /* prefix = add_erosion_words(obj, prefix); */
     ring:
         if (obj->owornmask & W_MASK(os_ringr))
             buf = msgcat(buf, " (on right ");
@@ -964,7 +967,7 @@ doname_base(const struct obj *obj, boolean with_price)
         break;
     case BALL_CLASS:
     case CHAIN_CLASS:
-        prefix = add_erosion_words(obj, prefix);
+        /* prefix = add_erosion_words(obj, prefix); */
         if (obj == uball)
             buf = msgcat(buf, " (chained to you)");
         break;
@@ -976,7 +979,7 @@ doname_base(const struct obj *obj, boolean with_price)
         } else {
             const char *hand_s = body_part(HAND);
 
-            if (bimanual(obj))
+            if (bimanual(obj) && (URACEDATA)->msize < MZ_HUGE)
                 hand_s = makeplural(hand_s);
             buf = msgcat_many(buf, " (weapon in ", hand_s, ")", NULL);
         }
@@ -1931,7 +1934,8 @@ static const struct alt_spellings {
  * making it work on a message rather than buffer would be nice.
  *
  * wishtype values are as follows:
- *  0 readobjnam() was called by something other than makewish()
+ *  0 wish resulting from item damage, or else
+ *    readobjnam() was called by something other than makewish()
  *  1 normal wish
  *  2 uncursed scroll of wishing
  *  3 blessed scroll of wishing
@@ -2709,6 +2713,7 @@ typfnd:
     }
 
     if (cnt > 0 && objects[typ].oc_merge && oclass != SPBOOK_CLASS &&
+        (wishtype > 0) &&
         (wizard || (cnt <= 7 && Is_candle(otmp)) ||
          (cnt <= 20 && ((oclass == WEAPON_CLASS && is_ammo(otmp))
                         || typ == ROCK || is_missile(otmp))) ||
@@ -2727,6 +2732,8 @@ typfnd:
         ;
     else if (oclass == ARMOR_CLASS || oclass == WEAPON_CLASS || is_weptool(otmp)
              || (oclass == RING_CLASS && objects[typ].oc_charged)) {
+        if (wishtype == 0)
+            spe = 0;
         if (spe > ((wishtype > 1) ? 3 : 1) + rn2_on_rng(5, rng_wish_quality))
             spe = 0;
         if (spe > 2 && Luck < 0)
@@ -2855,7 +2862,7 @@ typfnd:
     } else if (uncursed) {
         otmp->blessed = 0;
         otmp->cursed = (Luck < 0 && !wizard);
-    } else if (blessed) {
+    } else if (blessed && wishtype > 0) {
         otmp->blessed = (Luck >= 0 || wizard);
         otmp->cursed = (Luck < 0 && !wizard);
     } else if (spesgn < 0) {
@@ -2887,7 +2894,7 @@ typfnd:
     }
 
     /* set poisoned */
-    if (ispoisoned) {
+    if (ispoisoned && wishtype > 0) {
         if (is_poisonable(otmp))
             otmp->opoisoned = (Luck >= 0);
         else if (Is_box(otmp) || typ == TIN)
@@ -2897,7 +2904,7 @@ typfnd:
             otmp->age = 1L;
     }
 
-    if (isgreased)
+    if (isgreased && wishtype > 0)
         otmp->greased = 1;
 
     if (isdiluted && otmp->oclass == POTION_CLASS && otmp->otyp != POT_WATER)
@@ -2959,6 +2966,11 @@ rnd_class(int first, int last, enum rng rng)
 
     if (first == last)
         return first;
+    if (first > last) {
+        impossible("rnd_class: invalid object order (%d > %d)",
+                   first, last);
+        return first;
+    }
     for (i = first; i <= last; i++)
         sum += objects[i].oc_prob;
     if (!sum)   /* all zero */

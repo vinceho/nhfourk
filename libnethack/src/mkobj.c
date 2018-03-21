@@ -139,9 +139,13 @@ struct obj *
 mkobj_of_class(struct level *lev, char oclass, boolean artif, enum rng rng)
 {
     int i, prob = 1 + rn2_on_rng(1000, rng);
+    int levdepth = (lev && &lev->z) ? depth(&lev->z) : 1;
+    if (levdepth < 1)
+        levdepth = 1;
 
     if (oclass == RANDOM_CLASS) {
         impossible("mkobj_of_class called with RANDOM_CLASS");
+        oclass = GEM_CLASS; /* This class is least-disruptive to balance. */
     }
 
     if (oclass == GEM_CLASS) {
@@ -181,6 +185,17 @@ mkobj_of_class(struct level *lev, char oclass, boolean artif, enum rng rng)
 
         i = j + bases[GEM_CLASS];
     } else {
+        i = bases[(int)oclass];
+        while ((prob -= objects[i].oc_prob) > 0)
+            i++;
+    }
+
+    /* On early dungeon levels, random spellbooks now try to be ones for
+       low-level spells, most of the time. */
+    while (oclass == SPBOOK_CLASS &&
+           ((objects[i].oc_level - 1) * 3 > levdepth) &&
+           rn2_on_rng((objects[i].oc_level - 1) * 3 - levdepth, rng)) {
+        prob = 1 + rn2_on_rng(1000, rng);
         i = bases[(int)oclass];
         while ((prob -= objects[i].oc_prob) > 0)
             i++;
@@ -535,7 +550,7 @@ mksobj(struct level *lev, int otyp, boolean init, boolean artif, enum rng rng)
                 /* It's boring if practically everything is +0 and uncursed. */
                 int sign = rn2_on_rng(3,rng) ? -1 : 1;
                 otmp->spe = sign *
-                    (((10 + depth(&lev->z)) / 15) + rne_on_rng(2, rng));
+                    (((10 + depth(&lev->z)) / 15) + rat_rne(2, 3, rng));
                 if (sign < 0)
                     curse(otmp);
                 else
@@ -793,7 +808,7 @@ mksobj(struct level *lev, int otyp, boolean init, boolean artif, enum rng rng)
                 }
                 /* make useless +0 rings MUCH less common */
                 if (otmp->spe == 0)
-                    otmp->spe = rne_on_rng(2, rng)
+                    otmp->spe = (1 + rne_on_rng(2, rng))
                         * (rn2_on_rng(challengemode ? 2 : 3, rng) ? 1 : -1);
                 /* negative rings are usually cursed */
                 if (otmp->spe < 0 && rn2_on_rng(5, rng))
@@ -802,7 +817,8 @@ mksobj(struct level *lev, int otyp, boolean init, boolean artif, enum rng rng)
                        (otmp->otyp == RIN_TELEPORTATION ||
                         otmp->otyp == RIN_POLYMORPH ||
                         otmp->otyp == RIN_AGGRAVATE_MONSTER ||
-                        otmp->otyp == RIN_HUNGER || !rn2_on_rng(9, rng))) {
+                        otmp->otyp == RIN_HUNGER || !rn2_on_rng(9, rng) ||
+                        (otmp->otyp == RIN_LEVITATION && !rn2_on_rng(3, rng)))) {
                 curse(otmp);
             }
             break;

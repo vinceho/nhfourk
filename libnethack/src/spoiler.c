@@ -493,7 +493,7 @@ spoilmrace(int i)
 static const char *
 spoilmonflagone(unsigned long mflags)
 {
-    return msgprintf("%s%s%s%s%s%s%s%s" "%s%s%s%s%s%s%s%s"
+    return msgprintf("%s%s%s%s%s%s%s%s" "%s%s%s%s%s%s%s"
                      "%s%s%s%s%s%s%s%s" "%s%s%s%s%s%s%s%s%s",
                      /* M1 least significant byte */
                      ((mflags & M1_FLY)       ? "<span class=\"flgfly\">Fly</span> " : ""),
@@ -511,8 +511,12 @@ spoilmonflagone(unsigned long mflags)
                      ((mflags & M1_BREATHLESS) ? "<span class=\"flgbreathless\">Breathless</span> " : ""),
                      ((mflags & M1_NOTAKE)     ? "<span class=\"flgnotake\">NoTake</span> " : ""),
                      ((mflags & M1_NOEYES)     ? "<span class=\"flgnoeyes\">NoEyes</span> " : ""),
-                     ((mflags & M1_NOHANDS)    ? "<span class=\"flgfly\">NoHands</span> " : ""),
-                     ((mflags & M1_NOLIMBS)    ? "<span class=\"flgfly\">NoLimbs</span> " : ""),
+                     /* special handling for M1_NOLIMBS because of wonky bit
+                        usage inherited from vanilla, wherein two bits are used
+                        non-independently to hold two binary properties */
+                     (((mflags & M1_NOLIMBS) == M1_NOLIMBS)
+                                               ? "<span class=\"flgfly\">NoLimbs</span> " :
+                      ((mflags & M1_NOHANDS)   ? "<span class=\"flgfly\">NoHands</span> " : "")),
                      ((mflags & M1_NOHEAD)     ? "<span class=\"flgnohead\">NoHead</span> " : ""),
                      /* M1 third byte */
                      ((mflags & M1_MINDLESS)   ? "<span class=\"flgmindless\">Mindless</span> " : ""),
@@ -693,11 +697,8 @@ spoilartalign(struct artifact *art)
 static const char *
 spoilarteffects(struct artifact *art, unsigned long spfx, struct attack attk)
 {
-    return msgprintf("%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s %s%s",
+    return msgprintf("%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s %s%s",
                      ((spfx & SPFX_SEEK) ?
-                      /* TODO: currently, the code checks SPFX_SEARCH for both
-                         auto-searching and the +n search bonus and never
-                         checks SPFX_SEEK at all.  Fix that. */
                       "<span class=\"spfx spfxseek\">+n search</span> " : ""),
                      ((spfx & SPFX_WARN) ?
                       "<span class=\"spfx spfxwarn\">warn</span> " : ""),
@@ -735,6 +736,8 @@ spoilarteffects(struct artifact *art, unsigned long spfx, struct attack attk)
                       "<span class=\"spfx spfxreflect\">reflect</span> " : ""),
                      ((spfx & SPFX_STRM) ?
                       "<span class=\"spfx spfxstrm\">storm</span>" : ""),
+                     ((spfx & SPFX_FREEA) ?
+                      "<span class=\"spfx spfxfreea\">free act.</span>" : ""),
                      msgprintf("<span class=\"artattk\">%s</span>",
                                /* TODO: handle attk.damn and attk.damd */
                                (attk.adtyp && attk.adtyp == AD_MAGM) ? "MR" :
@@ -776,7 +779,8 @@ spoilartinvoke(struct artifact *art)
         return "<span class=\"invoke invokelev\">levitation</span>";
     case CONFLICT:
         return "<span class=\"invoke invokeconflict\">conflict</span>";
-
+    case UNCURSE_INVK:
+        return "<span class=\"invoke invokeuncurse\">remove curse</span>";
     default:
         return msgprintf("<!-- unknown invoke property -->%d", (int) i);
     }

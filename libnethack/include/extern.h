@@ -1,5 +1,5 @@
 /* vim:set cin ft=c sw=4 sts=4 ts=8 et ai cino=Ls\:0t0(0 : -*- mode:c;fill-column:80;tab-width:8;c-basic-offset:4;indent-tabs-mode:nil;c-file-style:"k&r" -*-*/
-/* Last modified by Fredrik Ljungdahl, 2017-10-21 */
+/* Last modified by Fredrik Ljungdahl, 2018-01-06 */
 /* Copyright (c) Steve Creps, 1988.                               */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -451,9 +451,10 @@ extern void hitfloor(struct obj *);
 extern void hurtle(int, int, int, boolean);
 extern void mhurtle(struct monst *, int, int, int);
 extern boolean throwing_weapon(const struct obj *);
-extern void throwit(struct obj *, long, boolean, schar, schar, schar);
+extern void throwit(struct obj *, long, boolean, schar, schar, schar,
+                    struct obj *);
 extern int omon_adj(struct monst *, struct obj *, boolean);
-extern int thitmonst(struct monst *, struct obj *);
+extern int thitmonst(struct monst *, struct obj *, struct obj *);
 extern int hero_breaks(struct obj *, xchar, xchar, boolean);
 extern int breaks(struct obj *, xchar, xchar);
 extern boolean breaktest(struct obj *);
@@ -986,7 +987,8 @@ extern int lminion(void);
 
 /* mkaiscav.c */
 
-extern void mkaiscav(struct level *lev);
+extern boolean can_aiscav_embed(char *proto);
+extern void mkaiscav(struct level *lev, char *proto);
 
 /* ### mklev.c ### */
 
@@ -1218,6 +1220,9 @@ extern boolean can_ooze(struct monst *);
 
 /* ### mplayer.c ### */
 
+extern struct monst *make_player_monster_at(int pm, struct level *lev,
+                                            xchar x, xchar y, boolean dopet,
+                                            enum rng rng);
 extern struct monst *mk_mplayer(const struct permonst *ptr, struct level *lev,
                                 xchar x, xchar y, boolean special, enum rng);
 extern void create_mplayers(int, boolean);
@@ -1267,6 +1272,7 @@ extern int do_play_instrument(struct obj *, const struct nh_cmd_arg *);
 
 enum rng rng_for_level(const d_level *);
 int mklev_rn2(int, struct level *);
+int rat_rne(int, int, enum rng);
 extern long gameseed_long(void);
 
 /* ### o_init.c ### */
@@ -1834,7 +1840,7 @@ extern int float_down(long);
 extern int fire_damage(struct obj *, boolean, boolean, xchar, xchar);
 extern void acid_damage(struct obj *);
 extern int water_damage(struct obj *, const char *, boolean);
-extern void water_damage_chain(struct obj *, boolean);
+extern int water_damage_chain(struct obj *, boolean);
 extern boolean drown(void);
 extern void drain_en(int);
 extern int dountrap(const struct nh_cmd_arg *);
@@ -1847,6 +1853,7 @@ extern struct trap *t_at(struct level *lev, int x, int y);
 extern void b_trapped(const char *, int);
 extern boolean lava_effects(void);
 extern void blow_up_landmine(struct trap *);
+extern void trigger_trap_with_polearm(struct trap *, coord, struct obj *);
 extern void cnv_trap_obj(struct level *lev, int otyp, int cnt,
                          struct trap *ttmp);
 
@@ -1860,7 +1867,7 @@ extern void u_init_inv_skills(void);
 extern void check_caitiff(struct monst *);
 extern schar find_roll_to_hit(struct monst *);
 extern enum attack_check_status attack(struct monst *, schar, schar, boolean);
-extern boolean hmon(struct monst *, struct obj *, int, int);
+extern boolean hmon(struct monst *, struct obj *, int, int, struct obj *);
 extern int damageum(struct monst *, const struct attack *);
 extern void do_web_attack(struct level *, struct monst *, struct monst *,
                           int, boolean);

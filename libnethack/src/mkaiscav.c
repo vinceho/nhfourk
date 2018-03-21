@@ -49,6 +49,7 @@
 #define AIS_UNDECIDED 2048
 
 int map[COLNO + 1][ROWNO + 1];
+boolean embedmask[COLNO + 1][ROWNO + 1];
 coord shuffledcoord[(COLNO - 1) * (ROWNO - 1)];
 coord upstair, dnstair;
 int aisdepth, liqcount;
@@ -88,6 +89,14 @@ static coord aisstairloc(int baseprob, int edge, int dir, const char *which);
 static void aisplacestairs(int trycount);
 static void mkaisvs(struct level *lev, int x, int y);
 static boolean xor(boolean conda, boolean condb);
+static int typ_from_mapchar(xchar c);
+static int aisconst_from_mapchar(xchar c, const char *callerinfo);
+static void aiscav_embed_stone_edge(char *embmap, int embysize, int embxsize,
+                                    int embyoffset, int embxoffset);
+static void aiscav_embed_helper(struct level *lev, char *proto, char *embmap,
+                                int embysize, int embxsize,
+                                int embyoffset, int embxoffset);
+static void do_aiscav_embed(struct level *lev, char *proto);
 static void dopool(int cx, int cy, int radius, int jitter);
 static coord aisplace(void);
 
@@ -117,7 +126,9 @@ ais_block_pt(int x, int y, boolean check, boolean mark_corridors)
         return;
     if (check && (map[x][y] == AIS_SOLID))
         return;
-    
+    if (embedmask[x][y])
+        return;
+
     wallcount =
         ((map[x + 1][y] == AIS_SOLID) ? 1 : 0) +
         ((map[x][y + 1] == AIS_SOLID) ? 1 : 0) +
@@ -207,7 +218,8 @@ aisstairloc(int baseprob, int edge, int dir, const char *which)
                 stairy = shuffy[i];
                 poscount++;
                 if ((map[stairx][stairy] == AIS_FLOOR) &&
-                    (sloc.x == 0) && (prob > mrn2(1000))) {
+                    (sloc.x == 0) && (prob > mrn2(1000) +
+                                      (embedmask[stairx][stairy] ? 500 : 0))) {
                     sloc.x = stairx;
                     sloc.y = stairy;
                     map[stairx][stairy] = AIS_STAIR;
@@ -319,6 +331,7 @@ dopool(int cx, int cy, int radius, int jitter)
                     + sqrt(((x - cx) / stretch) * ((x - cx) / stretch) +
                            ((y - cy) * (y - cy)));
                 if ((dist <= radius) &&
+                    (!embedmask[x][y]) &&
                     !(map[x][y] & AIS_STAIR) &&
                     (!(map[x][y] & AIS_SOLID) &&
                      !(map[x][y] & AIS_CORRIDOR)))
@@ -328,8 +341,470 @@ dopool(int cx, int cy, int radius, int jitter)
     }
 }
 
+/* The following two functions, can_aiscav_embed and do_aiscav_embed, must be
+   kept in sync: what the former returns TRUE for, the latter must handle. */
+boolean
+can_aiscav_embed(char *proto) {
+    if (0 == strncmp(proto, "fakewiz", 7))
+        return TRUE;
+    return FALSE;
+}
+
+
+/* Helper function for do_aiscav_embed */
 void
-mkaiscav(struct level *lev)
+aiscav_embed_stone_edge(char *embmap, int embysize, int embxsize,
+                        int embyoffset, int embxoffset)
+{
+    int x, y, dx, dy;
+    for (x = 0; x < embxsize; x++) {
+        for (y = 0; y < embysize; y++) {
+            if (embmap[y * (embxsize + 1) + x] == '.') {
+                for (dx = -1; dx <= 1; dx++) {
+                    for (dy = -1; dy <= 1; dy++) {
+                        if ((y + dy >= 0) && (y + dy < embysize) &&
+                            (x + dx >= 0) && (x + dx < embxsize) &&
+                            (embmap[(y + dy) * (embxsize + 1) + x + dx] == '?'))
+                            embmap[y * (embxsize + 1) + x] = ' ';
+                    }
+                }
+            }
+        }
+    }
+}
+/* Helper function for do_aiscav_embed */
+void
+aiscav_embed_helper(struct level *lev, char *proto, char *embmap,
+                    int embysize, int embxsize,
+                    int embyoffset, int embxoffset)
+{
+    int iy, ix;
+    for (iy = 0; iy < embysize; iy++) {
+        for (ix = 0; ix < embxsize; ix++) {
+            int terrain = aisconst_from_mapchar(
+                embmap[iy * (embxsize + 1) + ix],
+                msgprintf("[%d,%d][%d,%d](%d,%d)",
+                          embysize, embxsize, embyoffset, embxoffset,iy,ix));
+            map[embxoffset + ix][embyoffset + iy] = terrain;
+            if (terrain != AIS_UNDECIDED) {
+                embedmask[embxoffset + ix][embyoffset + iy] = TRUE;
+                lev->locations[embxoffset + ix][embyoffset + iy].typ =
+                    typ_from_mapchar(embmap[iy * (embxsize + 1) + ix]);
+            }
+        }
+    }
+}
+
+/* This function must handle whatever can_aiscav_embed returns TRUE for.
+   It also handles things that can be randomly embedded in filler levels.
+ */
+void
+do_aiscav_embed(struct level *lev, char *proto) {
+    enum rng rng = rng_for_level(&lev->z);
+    if (0 == strncmp(proto, "fakewiz", 7)) {
+        int embysize = 8;
+        int embxsize = 9;
+        char embedmap[8][10] = { ".........",
+                                 ".}}}}}}}.",
+                                 ".}}---}}.",
+                                 ".}--.--}.",
+                                 ".}|...|}.",
+                                 ".}--.--}.",
+                                 ".}}---}}.",
+                                 ".}}}}}}}."};
+        int emby = (int) (ROWNO - embysize) / 2;
+        int embx = (int) (COLNO - embxsize) / 2;
+        struct monst *lich, *vamp, *kraken;
+        /* Sometimes the fake tower is not perfectly centered: */
+        if ((embysize + 10 < ROWNO) && (embxsize + 22 < COLNO) &&
+            !rn2_on_rng(3, rng)) {
+            emby = 4 + rn2_on_rng(ROWNO - embysize - 8, rng);
+            embx = 10 + rn2_on_rng(COLNO - embxsize - 20, rng);
+        }
+        aiscav_embed_helper(lev, proto, *embedmap,
+                            embysize, embxsize, emby, embx);
+        lich = makemon(mkclass(&lev->z, S_LICH, 0, rng),
+                       lev, embx + 4, emby + 4, NO_MM_FLAGS);
+        vamp = makemon(mkclass(&lev->z, S_VAMPIRE, 0, rng),
+                       lev, embx + 3, emby + 4, NO_MM_FLAGS);
+        kraken = makemon(&mons[PM_KRAKEN], lev, embx + 6, emby + 6,
+                         NO_MM_FLAGS);
+        if (!lich || !vamp || !kraken)
+            pline(msgc_debug, "Failed to create special monster(s).");
+        maketrap(lev, embx + 4, emby + 3, SQKY_BOARD, rng);
+        maketrap(lev, embx + 4, emby + 5, SQKY_BOARD, rng);
+        maketrap(lev, embx + 3, emby + 4, SQKY_BOARD, rng);
+        maketrap(lev, embx + 5, emby + 4, SQKY_BOARD, rng);
+        if (0 == strncmp(proto, "fakewiz1", 8)) {
+            /* fakewiz1 is the "real fake tower", with the portal. */
+            d_level *dest = &dungeon_topology.d_wiz3_level;
+            mkportal(lev, embx + 4, emby + 4,
+                     dest->dnum, dest->dlevel);
+        } else {
+            mkobj_at(AMULET_CLASS, lev, embx + 4, emby + 4, FALSE, rng);
+        }
+        return;
+    } else if (0 == strncmp(proto, "challenge", 9)) {
+        /* Embed an "optional challenge area".  Thanks to mtf for the idea. */
+        int embysize = 14;
+        int embxsize = 32;
+        char embedmap[14][33] = { "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????",
+                                  "????????????????????????????????" };
+        int emby = (int) (ROWNO - embysize) / 2;
+        int embx = (int) (COLNO - embxsize) / 2;
+        int x,y, doorx, doory, radius, challenge, reward, i;
+        int cx = embxsize / 2;
+        int cy = embysize / 2;
+        struct obj *weapon;
+        struct obj *armor;
+        /* Sometimes the challenge area is not centered: */
+        if ((embysize + 6 < ROWNO) && !rn2_on_rng(3, rng)) {
+            emby = 2 + rn2_on_rng(ROWNO - embysize - 4, rng);
+            embx = 3 + rn2_on_rng(COLNO - embxsize - 6, rng);
+        }
+        /* The challenge area can be one of several shapes: */
+        switch (rn2_on_rng(5, rng)) {
+        case 3: /* Diamond */
+            radius = -1; /* The word "radius" here is only to re-use
+                            the same variable as the circle/oval code. */
+            for (x = 0; x < embxsize; x++) {
+                if (x > cx) radius++; else radius--;
+                for (y = 0; y < embysize; y++) {
+                    if (abs(y - cy) < radius)
+                        embedmap[y][x] = '.';
+                }
+            }
+            aiscav_embed_stone_edge(*embedmap, embysize, embxsize, emby, embx);
+            break;
+        case 2: /* Circle */
+            radius = cy - 1;
+            for (x = 0; x < embxsize; x++) {
+                for (y = 0; y < embysize; y++) {
+                    int distx = abs(x - cx);
+                    int disty = abs(y - cy);
+                    int distsquared = (distx * distx) + (disty * disty);
+                    if (distsquared < (radius * radius)) {
+                        embedmap[y][x] = '.';
+                    }
+                }
+            }
+            aiscav_embed_stone_edge(*embedmap, embysize, embxsize, emby, embx);
+            break;
+        case 1:  /* Oval */
+            radius = cx - 1;
+            for (x = 0; x < embxsize; x++) {
+                for (y = 0; y < embysize; y++) {
+                    int distx = abs(x - cx);
+                    int disty = abs(y - cy)
+                        /* Correct for aspect ratio: */
+                        * (cx - 1) / (cy - 1);
+                    int distsquared = (distx * distx) + (disty * disty);
+                    if (distsquared < (radius * radius)) {
+                        embedmap[y][x] = '.';
+                    }
+                }
+            }
+            aiscav_embed_stone_edge(*embedmap, embysize, embxsize, emby, embx);
+            break;
+        default: /* Full Rectangle */
+            for (x = 0; x < embxsize; x++) {
+                embedmap[0][x] = '#';
+                embedmap[1][x] = (x == 0 || x == embxsize - 1) ? '#' : '|';
+                for (y = 2; y < (embysize - 2); y++) {
+                    if (x == 0 || x == embxsize - 1)
+                        embedmap[y][x] = '#';
+                    else if (x == 1 || x == embxsize - 2)
+                        embedmap[y][x] = '-';
+                    else
+                        embedmap[y][x] = '.';
+                }
+                embedmap[embysize - 2][x] =
+                    (x == 0 || x == embxsize - 1) ? '#' : '|';
+                embedmap[embysize - 1][x] = '#';
+            }
+            /* Place a door */
+            switch (rn2_on_rng(6, rng)) {
+            case 1:
+            case 2:
+                doorx = 3 + rn2_on_rng(embxsize - 6, rng);
+                embedmap[doory = 1][x] = '+';
+                break;
+            case 3:
+            case 4:
+                doorx = 3 + rn2_on_rng(embxsize - 6, rng);
+                embedmap[doory = embysize - 2][doorx] = '+';
+                break;
+            case 5:
+                doory = 3 + rn2_on_rng(embysize - 6, rng);
+                embedmap[doory][doorx = 1] = '+';
+                break;
+            default:
+                doory = 3 + rn2_on_rng(embysize - 6, rng);
+                embedmap[doory][doorx = embxsize - 2] = '+';
+                break;
+            }
+            break;
+        }
+        aiscav_embed_helper(lev, proto, *embedmap,
+                            embysize, embxsize, emby, embx);
+        /* Challenges and Rewards: */
+        challenge = rn2_on_rng(6, rng);
+        reward    = rn2_on_rng(5, rng);
+        int kraken[] = { PM_KRAKEN, PM_ELECTRIC_EEL, PM_BLACK_LIGHT, PM_COUATL,
+                         PM_WATER_ELEMENTAL, PM_WATER_TROLL };
+        int snake[]  = { PM_GOLDEN_NAGA, PM_GUARDIAN_NAGA, PM_BLACK_NAGA,
+                         PM_RED_NAGA, PM_PYTHON, PM_SALAMANDER };
+        int dragon[] = { PM_ANCIENT_BLACK_DRAGON, PM_ANCIENT_BLUE_DRAGON,
+                         PM_ANCIENT_YELLOW_DRAGON, PM_ANCIENT_ORANGE_DRAGON,
+                         PM_ANCIENT_WHITE_DRAGON, PM_ANCIENT_GREEN_DRAGON };
+        /*
+          Note: don't include master or arch liches: being covetous, they
+          immediately get out of the challenge area and attack the player.
+          We're not trying to be quite that evil here.  The challenge area is
+          intended to be optional, and while most players will probably choose
+          to clear them, they should enter knowingly, when ready, to do so.
+        */
+        int undead[] = { PM_LICH, PM_DEMILICH, PM_VAMPIRE_LORD,
+                         PM_SHADE, PM_SKELETON, PM_ALIGNED_PRIEST };
+        int nasty[]  = { PM_MASTER_MIND_FLAYER, PM_MINOTAUR, PM_ISLAND_NYMPH,
+                         PM_PURPLE_WORM, PM_COCKATRICE, PM_CAPTAIN };
+        int demon[]  = { PM_SANDESTIN, PM_NALFESHNEE, PM_BALROG, PM_HEZROU,
+                         PM_ICE_DEVIL, u.ufemale ? PM_INCUBUS : PM_SUCCUBUS };
+        for (x = 0; x < embxsize; x++) {
+            for (y = 0; y < embysize; y++) {
+                if (embedmap[y][x] == '.') {
+                    int pmidx = rn2_on_rng(6, rng);
+                    switch (reward) {
+                    case 1:
+                        mkobj_at(WAND_CLASS,
+                                 lev, embx + x, emby + y, FALSE, rng);
+                        break;
+                    case 2:
+                        mkobj_at(rn2_on_rng(3, rng) ? SCROLL_CLASS :
+                                 SPBOOK_CLASS,
+                                 lev, embx + x, emby + y, FALSE, rng);
+                        break;
+                    case 3:
+                        for (i = 0; i <= rat_rne(2,3,rng); i++)
+                            mkobj_at(POTION_CLASS,
+                                     lev, embx + x, emby + y, FALSE, rng);
+                        break;
+                    case 4:
+                        mkobj_at(rn2_on_rng(5, rng) ? RING_CLASS : AMULET_CLASS,
+                                 lev, embx + x, emby + y, FALSE, rng);
+                        break;
+                    default:
+                        mksobj_at(CHEST, lev, embx + x, emby + y,
+                                  TRUE, FALSE, rng);
+                    }
+                    switch (challenge) {
+                    case 6: /* Don't fill the area, this is the team of
+                               adventurers and their pets challenge. */
+                        break;
+                    case 5:
+                        (void) makemon(&mons[demon[pmidx]], lev,
+                                      embx + x, emby + y, MM_ANGRY);
+                        break;
+                    case 4:
+                        (void) makemon(&mons[nasty[pmidx]], lev,
+                                      embx + x, emby + y, MM_ANGRY);
+                        break;
+                    case 3:
+                        (void) makemon(&mons[undead[pmidx]], lev,
+                                      embx + x, emby + y, MM_ANGRY);
+                        break;
+                    case 2:
+                        (void) makemon(&mons[dragon[pmidx]], lev,
+                                      embx + x, emby + y, MM_ANGRY);
+                        break;
+                    case 1:
+                    default:
+                        lev->locations[embx + x][emby + y].typ = POOL;
+                        (void) makemon(&mons[(challenge == 1) ?
+                                            kraken[pmidx] : snake[pmidx]],
+                                      lev, embx + x, emby + y, MM_ANGRY);
+                    }
+                }
+            }
+        }
+        if (challenge == 6) { /* Special case */
+            int adventurer[5] = {
+                /* Ranged Fighter */
+                (rn2_on_rng(3, rng) ? PM_RANGER : PM_ROGUE),
+                /* First Melee Fighter */
+                ((!rn2_on_rng(3, rng)) ? PM_BARBARIAN :
+                 (!rn2_on_rng(3, rng)) ? PM_VALKYRIE :
+                 rn2_on_rng(2, rng) ? PM_SAMURAI : PM_KNIGHT),
+                /* Second Melee Fighter */
+                ((!rn2_on_rng(3, rng)) ? PM_BARBARIAN :
+                 (!rn2_on_rng(3, rng)) ? PM_VALKYRIE :
+                 rn2_on_rng(2, rng) ? PM_SAMURAI :
+                 rn2_on_rng(2, rng) ? PM_CAVEMAN : PM_CAVEWOMAN),
+                /* First Support */
+                ((!rn2_on_rng(3, rng)) ? PM_HEALER :
+                 (!rn2_on_rng(3, rng)) ? PM_TOURIST :
+                 rn2_on_rng(3, rng) ? PM_MONK :
+                 rn2_on_rng(2, rng) ? PM_PRIEST : PM_PRIESTESS),
+                /* Second Support */
+                ((!rn2_on_rng(3, rng)) ? PM_WIZARD :
+                 (!rn2_on_rng(3, rng)) ? PM_MONK :
+                 !rn2_on_rng(3, rng) ? PM_KNIGHT :
+                 rn2_on_rng(2, rng) ? PM_PRIEST : PM_PRIESTESS) };
+            make_player_monster_at(adventurer[0],
+                                   lev, embx + cx + 2, emby + cy,
+                                   rn2_on_rng(3, rng), rng);
+            make_player_monster_at(adventurer[1],
+                                   lev, embx + cx - 2, emby + cy,
+                                   rn2_on_rng(3, rng), rng);
+            make_player_monster_at(adventurer[2],
+                                   lev, embx + cx, emby + cy + 2,
+                                   rn2_on_rng(3, rng), rng);
+            make_player_monster_at(adventurer[3],
+                                   lev, embx + cx, emby + cy + 2,
+                                   rn2_on_rng(3, rng), rng);
+            make_player_monster_at(adventurer[4],
+                                   lev, embx + cx, emby + cy,
+                                   rn2_on_rng(3, rng), rng);
+        }
+        switch (rn2_on_rng(10, rng)) {
+        case 1:
+            weapon = mksobj(lev, SILVER_SABER, TRUE, TRUE, rng);
+            break;
+        case 2:
+            weapon = mksobj(lev, TWO_HANDED_SWORD, TRUE, TRUE, rng);
+            break;
+        case 3:
+            weapon = mksobj(lev, FLAIL, TRUE, TRUE, rng);
+            break;
+        case 4:
+            weapon = mksobj(lev, ATHAME, TRUE, TRUE, rng);
+            break;
+        case 5:
+            weapon = mksobj(lev, RUNESWORD, TRUE, TRUE, rng);
+            break;
+        case 6:
+            weapon = mksobj(lev, SCIMITAR, TRUE, TRUE, rng);
+            break;
+        case 7:
+            weapon = mksobj(lev, PICK_AXE, TRUE, TRUE, rng);
+            break;
+        default:
+            weapon = mksobj(lev, LONG_SWORD, TRUE, TRUE, rng);
+            break;
+        }
+        switch (rn2_on_rng(8, rng)) {
+        case 1:
+            armor = mksobj(lev, STUDDED_LEATHER_ARMOR, TRUE, TRUE, rng);
+            break;
+        case 2:
+            armor = mksobj(lev, DWARVISH_MITHRIL_COAT, TRUE, TRUE, rng);
+            break;
+        case 3:
+            armor = mksobj(lev, OILSKIN_CLOAK, TRUE, TRUE, rng);
+            break;
+        case 4:
+            armor = mksobj(lev, HELM_OF_BRILLIANCE, TRUE, TRUE, rng);
+            break;
+        case 5:
+            armor = mksobj(lev, GAUNTLETS_OF_DEXTERITY, TRUE, TRUE, rng);
+            break;
+        case 6:
+            armor = mksobj(lev, SHIELD_OF_REFLECTION, TRUE, TRUE, rng);
+            break;
+        default:
+            armor = mksobj(lev, CRYSTAL_PLATE_MAIL, TRUE, TRUE, rng);
+            break;
+        }
+        if (weapon) {
+            weapon->oerodeproof = TRUE;
+            if (abs(weapon->spe) <= 5)
+                weapon->spe = rat_rne(2, 3, rng) + (depth(&lev->z) / 7);
+            if (!weapon->oartifact)
+                weapon = oname_random_weapon(weapon, rng);
+            place_object(weapon, lev, embx + cx, emby + cy);
+        }
+        if (armor) {
+            armor->oerodeproof = TRUE;
+            if (abs(armor->spe) <= 3)
+                armor->spe = rat_rne(2, 3, rng) + (depth(&lev->z) / 10);
+            place_object(armor, lev, embx + cx, emby + cy);
+        }
+        return;
+    }
+    /* Implementing the ability to embed the wizard's tower, demon lairs, and
+       other special content is deferred:  I want to implement those eventually,
+       but for now, while we emplement the embedding and verify it works as
+       intended, we'll just do the fakewiz towers, as they're simplest. */
+    impossible("Don't know how to embed special-level content for %s", proto);
+}
+
+/* These only have to be "close enough".  It's the aisconst_from_mapchar return
+   value that actually drives what the terrain will ultimately become.  However,
+   during the embedding phase (before the surrounding level is filled in), we
+   need to be close enough (solid vs liquid vs open) for things like portal
+   creation, monster placement, object placement, etc. to work reasonably. */
+int
+typ_from_mapchar(xchar c) {
+    if (c == ' ')
+        return STONE;
+    if (c == '.')
+        return ROOM;
+    if (c == '#')
+        return CORR;
+    if (c == '+')
+        return DOOR;
+    if (c == '-')
+        return HWALL;
+    if (c == '|')
+        return VWALL;
+    if (c == '}')
+        return MOAT;
+    if (c == 'L')
+        return LAVAPOOL;
+    impossible("typ_from_mapchar('%c'), unhandled character", c);
+    return ROOM;
+}
+
+int
+aisconst_from_mapchar(xchar c, const char *callerinfo) {
+    if (c == ' ')
+        return AIS_SOLID;
+    if (c == '+')
+        return AIS_SOLID;
+    if (c == '#')
+        return AIS_CORRIDOR;
+    if (c == '.')
+        return AIS_FLOOR;
+    if (c == '-' || c == '|')
+        return AIS_SOLID;
+    if (c == '}')
+        return AIS_WATER;
+    if (c == 'L')
+        return AIS_LAVA;
+    /* STAIR is currently not supported for embedding via mapchar.
+    if (c == '<' or c == '>')
+        return AIS_STAIR;
+    */
+    if (c == '?')
+        return AIS_UNDECIDED;
+    impossible("No AIS_TERRAIN constant (ci: %s) for map character %d ('%c').",
+               callerinfo, c, c);
+    return AIS_UNDECIDED;
+}
+void
+mkaiscav(struct level *lev, char *proto)
 {
     aisdepth = (depth(&lev->z) - 25) * 2;
     rng = rng_for_level(&lev->z);
@@ -353,8 +828,24 @@ mkaiscav(struct level *lev)
                 shuffledcoord[i] = cc;
                 i++;
             }
+            embedmask[x][y] = FALSE;
         }
     }
+
+    /* Do we have any special content to embed? */
+    if (can_aiscav_embed(proto)) {
+    /* This is the point in the process at which we insert the embedded content
+       (and mark it as special/embedded, so that the adjustment phase, later,
+       does not adjust it in undesirable ways). */
+        do_aiscav_embed(lev, proto);
+    } else if ((0 == strncmp(proto, "gehcav", 6)) &&
+               !Invocation_lev(&lev->z)) {
+        if (!rn2_on_rng(wizard ? 2 : 4, rng))
+            do_aiscav_embed(lev, "challenge");
+        else if (!rn2_on_rng(3, rng))
+            do_aiscav_embed(lev, "fakewiz3"); /* fake fake fake wizard tower */
+    }
+
     /* Shuffle the coordinates into a random order: */
     for (i = 0; i < num_of_shuffledcoord; i++) {
         int   swapi = mrn2(num_of_shuffledcoord);
@@ -362,16 +853,6 @@ mkaiscav(struct level *lev)
         shuffledcoord[i]     = shuffledcoord[swapi];
         shuffledcoord[swapi] = swapc;
     }
-    /* TODO: in principle, the algorithm supports embedding
-       special-level content.  This is roughly the point in the
-       process at which it would ought to be inserted (and marked
-       special, so that the adjustment phase, later, would not
-       adjust it in undesirable ways).  Implementing the ability
-       to embed e.g. the wizard's tower, fake towers, demon
-       lairs, or other special features is deferred:  I want
-       to implement it eventually, but for now, let's just get
-       the basic level generation part working.
-    */
     for (i = 0; i < num_of_shuffledcoord; i++) {
         x = shuffledcoord[i].x;
         y = shuffledcoord[i].y;
@@ -410,6 +891,7 @@ mkaiscav(struct level *lev)
                 (map[x - 1][y] != AIS_SOLID) &&
                 (map[x][y + 1] != AIS_SOLID) &&
                 (map[x][y - 1] != AIS_SOLID) &&
+                (!embedmask[x][y]) &&
                 (map[x][y] == AIS_SOLID))
                 map[x][y] = AIS_FLOOR;
         }
@@ -436,7 +918,8 @@ mkaiscav(struct level *lev)
                 y = shuffledcoord[i].y;
                 int orthocorridor = 0;
                 struct neighborhood hood = neighbors(x, y);
-                if ((map[x][y] != AIS_SOLID) &&
+                if ((!embedmask[x][y]) &&
+                    (map[x][y] != AIS_SOLID) &&
                     (map[x][y] != AIS_CORRIDOR)) {
                     for (nidx = 0; nidx <= 6; nidx += 2) {
                         if (hood.n[nidx] == AIS_CORRIDOR)
@@ -464,7 +947,7 @@ mkaiscav(struct level *lev)
        the effect is minor. */
     for (x = 1; x < COLNO - 1; x++) {
         for (y = 1; y < ROWNO - 1; y++) {
-            if (map[x][y] != AIS_CORRIDOR) {
+            if ((map[x][y] != AIS_CORRIDOR) && (!embedmask[x][y])) {
                 int da, db, di;
                 for (di = 0; di < 4; di++) {
                     switch (di) {
@@ -554,7 +1037,7 @@ mkaiscav(struct level *lev)
                 if (hood.n[nidx] & AIS_CORRIDOR)
                     lonely = FALSE;
             }
-            if (lonely) {
+            if (lonely && (!embedmask[x][y])) {
                 map[x][y] |= AIS_SOLID;
                 if (((map[x][y] & AIS_NORTH) ||
                      (map[x][y] & AIS_SOUTH) ||
